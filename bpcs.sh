@@ -1,10 +1,11 @@
 #!/bin/bash
 
 # -- 配置 -------
-FOLDER="/etc"
-STRIP="/"
+FOLDER="/private/etc"
+STRIP="/private/"
 # -----------------
 
+set -e
 cd $(dirname "$0")
 
 if [[ "$1" = "init" ]]; then
@@ -12,12 +13,13 @@ if [[ "$1" = "init" ]]; then
 	exit 0
 fi
 
-appname=`cat config/appname 2>/dev/null`
-atoken=`cat config/access_token 2>/dev/null`
-if [[ -z "$appname" || -z "$atoken" ]]; then
+if ! [[ -e config/access_token ]]; then 
 	echo "! missing config. try: bash `pwd`/`basename \"$0\"` init"
 	exit 1
 fi
+
+appname=`cat config/appname`
+atoken=`cat config/access_token`
 
 mkdir -p run
 cd run
@@ -29,9 +31,8 @@ today=$(date '+%F')
 today_done=${today}_done
 
 if [[ -e $today ]]; then
-	test -e $today_done || touch $today_done
-	resume=$(wc -l $today_done | cut -f1 -d' ')
-	let resume=resume+1
+	touch $today_done
+	resume=$(wc -l $today_done | awk "{print \$0+1}")
 else
 	rm -f $today_done
 	sentry="_sentry"
@@ -48,6 +49,7 @@ fi
 limit=${1-0}
 batch=${2-200}
 echo '-' $(date '+%F %T') "resume=$resume limit=$limit batch=$batch" >> $log_file
+
 
 counter=$(awk -v url="https://pcs.baidu.com/rest/2.0/pcs/file?method=upload&access_token=${atoken}&ondup=overwrite&path=/apps/${appname}" '
 function upload(done) {

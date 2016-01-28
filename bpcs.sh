@@ -49,7 +49,7 @@ limit=${1-0}
 batch=${2-200}
 echo '-' $(date '+%F %T') "resume=$resume limit=$limit batch=$batch" >> $log_file
 
-counter=$(awk -v url="https://pcs.baidu.com/rest/2.0/pcs/file?method=upload&access_token=${atoken}&ondup=overwrite&path=/apps/bpcs_uploader" '
+counter=$(awk -v url="https://pcs.baidu.com/rest/2.0/pcs/file?method=upload&access_token=${atoken}&ondup=overwrite&path=/apps/${appname}" '
 function upload(done) {
 	if (cc > 0) {
 		ret = system("curl " substr(args, 5) " 2>_err >_out")

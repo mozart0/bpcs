@@ -8,7 +8,7 @@ STRIP="/private/"
 set -e
 cd $(dirname "$0")
 
-if [[ "$1" = "init" ]]; then
+if [[ "$1" = init ]]; then
 	php -n -d disable_functions -d safe_mode=Off access.php quickinit
 	exit 0
 fi
@@ -18,6 +18,18 @@ if ! [[ -e config/access_token ]]; then
 	exit 1
 fi
 
+if [[ "$1" = resume ]] && [[ -s "$2" ]]; then
+	today="$2"
+	shift
+	shift
+else
+	today=$(date '+%F')
+fi
+today_done=${today}_done
+
+echo "- $today $today_done"
+exit 0
+
 appname=`cat config/appname`
 atoken=`cat config/access_token`
 
@@ -25,10 +37,7 @@ mkdir -p run
 cd run
 
 log_file="_log"
-echo '#' $(date '+%F %T') 'start ----------' >> $log_file
-
-today=$(date '+%F')
-today_done=${today}_done
+echo '#' $(date '+%F %T') "start $today ----------" >> $log_file
 
 if [[ -e $today ]]; then
 	touch $today_done

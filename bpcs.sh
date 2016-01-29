@@ -17,7 +17,7 @@ if ! [[ -e config/access_token ]]; then
 	exit 1
 fi
 
-if [[ "$1" = resume ]] && [[ -s "$2" ]]; then
+if [[ "$1" = "resume" ]] && [[ -n "$2" ]]; then
 	today="$2"
 	shift
 	shift
@@ -25,9 +25,6 @@ else
 	today=$(date '+%F')
 fi
 today_done=${today}_done
-
-echo "- $today $today_done"
-exit 0
 
 appname=`cat config/appname`
 atoken=`cat config/access_token`

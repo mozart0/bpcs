@@ -1,8 +1,10 @@
 #!/bin/bash
 
-# -- 配置 -------
+# -- configs ------
+# target_path = LPAD + slice($fullpath, strlen(LTRIM))
 FOLDER="/private/etc"
-STRIP="/private/"
+LTRIM="/private/"
+LPAD=""
 # -----------------
 
 cd $(dirname "$0")
@@ -36,7 +38,7 @@ mkdir -p run
 cd run
 
 log_file="_log"
-echo '#' $(date '+%F %T') "start $today ----------" >> $log_file
+echo '#' $(date '+%F %T') "start $today ----------" | tee $log_file
 
 if [[ -e $today ]]; then
 	touch $today_done
@@ -60,8 +62,8 @@ batch=${2-200}
 retry=${3-10}
 
 while [[ $retry -ge 0 ]]; do
-	echo '-' $(date '+%F %T') "resume=$resume limit=$limit batch=$batch retry=$retry" >> $log_file
-	counter=$(awk -v url="https://pcs.baidu.com/rest/2.0/pcs/file?method=upload&access_token=${atoken}&ondup=overwrite&path=/apps/${appname}" '
+	echo '-' $(date '+%F %T') "resume=$resume limit=$limit batch=$batch retry=$retry" | tee $log_file
+	counter=$(awk -v url="https://pcs.baidu.com/rest/2.0/pcs/file?method=upload&access_token=${atoken}&ondup=overwrite&path=/apps/${appname}/${LPAD}" '
 	function upload(done) {
 		if (cc > 0) {
 			ret = system("curl " substr(args, 5) " 2>_err >_out")
@@ -84,7 +86,7 @@ while [[ $retry -ge 0 ]]; do
 		}
 	}
 	(NR >= '$resume') {
-		args = args " -: -kfLsS -X POST --form file=@\"" $0 "\" -w \" %{http_code} %{time_total}\\n\" \"" url substr($0, '${#STRIP}') "\""
+		args = args " -: -kfLsS -X POST --form file=@\"" $0 "\" -w \" %{http_code} %{time_total}\\n\" \"" url substr($0, '${#LTRIM}' + 1) "\""
 		counter += 1
 		cc += 1
 		if (cc == '$batch') upload("batch")
@@ -95,11 +97,11 @@ while [[ $retry -ge 0 ]]; do
 	}' $today)
 	ret=$?
 	if [[ $ret -eq 0 ]]; then
-		echo '-' $(date '+%F %T') "complete $counter" >> $log_file
+		echo '-' $(date '+%F %T') "complet $counter" | tee $log_file
 		break
 	else
 		err=$(cat _err)
-		echo '-' $(date '+%F %T') "abort $counter $err" >> $log_file
+		echo '-' $(date '+%F %T') "abort $counter $err" | tee $log_file
 		resume=$(wc -l $today_done | awk '{print $0+1}')
 		let retry--
 	fi

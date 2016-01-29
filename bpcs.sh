@@ -1,11 +1,9 @@
 #!/bin/bash
 
 # -- configs ------
-# target_path = LPAD + slice($fullpath, strlen(LTRIM))
 FOLDER="/private/etc"
 LTRIM="/private/"
 LPAD=""
-# -----------------
 
 cd $(dirname "$0")
 

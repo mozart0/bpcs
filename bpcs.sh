@@ -19,7 +19,6 @@ if [[ -z "$folder" ]]; then
 fi
 ltrim=${ltrim-/}
 lpad=${lpad-}
-limit=${limit-0}
 batch=${batch-200}
 retry=${retry-7}
 
@@ -30,20 +29,36 @@ fi
 appname=`cat config/appname`
 atoken=`cat config/access_token`
 
-[[ -n "$1" ]] && dest="$1" || dest=$(date '+%F')
-dest_done=${dest}_done
-
 mkdir -p run
 cd run
+
+work=$(ls -td 2*.work 2>/dev/null | head -n1)
+if [[ -n "$work" ]]; then
+	dest=${work%.work}
+	dest_work=$work
+	if [[ ! -e "$dest" ]]; then
+		echo "! seen $dest_work without $dest"
+		exit 1
+	fi
+else
+	dest=$(date '+%F')
+	dest_work=${dest}.work
+fi
+
+dest_done=${dest}.done
+if [[ -e "$dest_done" ]]; then
+	echo "! seen $dest_done already"
+	exit 1
+fi
 
 log_file="_log"
 echo '#' $(date '+%F %T') "start $dest ----------" | tee -a $log_file
 
 if [[ -e $dest ]]; then
-	touch $dest_done
-	resume=$(wc -l $dest_done | awk '{print $0+1}')
+	touch "$dest_work"
+	resume=$(wc -l $dest_work | awk '{print $0+1}')
 else
-	rm -f $dest_done
+	echo -n > "$dest_work"
 	sentry="_sentry"
 	sentry_new=${sentry}_new
 	touch $sentry_new
@@ -56,19 +71,20 @@ else
 	resume=1
 fi
 
+ret=0
 while [[ $retry -ge 0 ]]; do
-	echo '-' $(date '+%F %T') "resume=$resume limit=$limit batch=$batch retry=$retry" | tee -a $log_file
+	echo '-' $(date '+%F %T') "resume=$resume retry=$retry" | tee -a $log_file
 	counter=$(awk -v url="https://pcs.baidu.com/rest/2.0/pcs/file?method=upload&access_token=${atoken}&ondup=overwrite&path=/apps/${appname}/${lpad}" '
 	function upload(done) {
 		if (cc > 0) {
 			ret = system("curl " substr(args, 5) " 2>_err >_out")
 			if (ret == 0) {
-				system("cat _out >> '$dest_done'")
+				system("cat _out >> '$dest_work'")
 				cc = 0
 				args = ""
 			} else {
 				"sed -n /^{/d _out | wc -l" | getline v
-				if (v + 0) system("sed -n /^{/d _out >> '$dest_done'")
+				if (v + 0) system("sed -n /^{/d _out >> '$dest_work'")
 				print counter - cc + v
 				ended = 1
 				exit ret
@@ -85,21 +101,20 @@ while [[ $retry -ge 0 ]]; do
 		counter += 1
 		cc += 1
 		if (cc == '$batch') upload("batch")
-		if (counter == '$limit') upload("limit")
 	}
 	END {
 		if (!ended) upload("end")
 	}' $dest)
 	ret=$?
 	if [[ $ret -eq 0 ]]; then
-		echo '-' $(date '+%F %T') "complet $counter" | tee -a $log_file
+		echo '-' $(date '+%F %T') "complete $counter" | tee -a $log_file
+		mv -f "$dest_work" "$dest_done"
 		break
 	else
 		err=$(cat _err)
-		echo '-' $(date '+%F %T') "abort $counter $err" | tee -a $log_file
-		resume=$(wc -l $dest_done | awk '{print $0+1}')
+		echo '-' $(date '+%F %T') "upload $counter. $err" | tee -a $log_file
+		resume=$(wc -l $dest_work | awk '{print $0+1}')
 		let retry--
 	fi
 done
-
 exit $ret

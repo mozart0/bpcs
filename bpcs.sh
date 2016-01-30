@@ -72,7 +72,8 @@ else
 fi
 
 ret=0
-while [[ $retry -ge 0 ]]; do
+wait=1
+until [[ $retry -eq 0 ]]; do
 	echo '-' $(date '+%F %T') "resume=$resume retry=$retry" | tee -a $log_file
 	counter=$(awk -v url="https://pcs.baidu.com/rest/2.0/pcs/file?method=upload&access_token=${atoken}&ondup=overwrite&path=/apps/${appname}/${lpad}" '
 	function upload(done) {
@@ -114,7 +115,9 @@ while [[ $retry -ge 0 ]]; do
 		err=$(cat _err)
 		echo '-' $(date '+%F %T') "upload $counter. $err" | tee -a $log_file
 		resume=$(wc -l $dest_work | awk '{print $0+1}')
-		let retry--
 	fi
+	let retry--
+	sleep $wait
+	let wait+=2
 done
 exit $ret

@@ -7,21 +7,17 @@ if [[ "$1" = "init" ]]; then
 	exit 0
 fi
 
-if ! [[ -f config.ini ]]; then
-	echo "! missing config.ini"
-	exit 1
-fi
-source config.ini
-
-if [[ -z "$folder" ]]; then
-	echo "! missing folder in config.ini"
-	exit 1
-fi
+[[ -e config.ini ]] && source config.ini
+folder=${folder-}
 ltrim=${ltrim-/}
 lpad=${lpad-}
 batch=${batch-200}
 retry=${retry-7}
-
+while [[ $1 = *=* ]]; do eval "$1"; shift; done
+if [[ -z "$folder" ]]; then
+	echo "! missing folder in config.ini"
+	exit 1
+fi
 if ! [[ -e config/access_token ]]; then 
 	echo "! missing config folder. try: bash `pwd`/`basename \"$0\"` init"
 	exit 1

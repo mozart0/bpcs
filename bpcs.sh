@@ -28,7 +28,7 @@ atoken=`cat config/access_token`
 mkdir -p run
 cd run
 
-work=$(ls -td 2*.work 2>/dev/null | head -n1)
+work=$(ls -td *.work 2>/dev/null | head -n1)
 if [[ -n "$work" ]]; then
 	dest=${work%.work}
 	dest_work=$work
